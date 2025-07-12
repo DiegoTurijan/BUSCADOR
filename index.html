@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Asignación de Mesas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilos para la escena de la mesa */
+        .table-scene {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 2rem auto;
+        }
+        @media (max-width: 480px) {
+            .table-scene {
+                width: 320px;
+                height: 320px;
+            }
+        }
+        /* Estilo para la mesa circular */
+        .table {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            background-color: #a38a6c;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 10px rgba(0,0,0,0.1) inset;
+            border: 5px solid #856d54;
+            z-index: 1;
+        }
+        /* Estilo para el número de mesa */
+        .table-number {
+            background-color: #856d54;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* Estilo base para las sillas */
+        .chair {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 500;
+            color: #334155;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 4px;
+            cursor: default;
+            z-index: 2;
+            overflow: hidden;
+            margin-left: -30px;
+            margin-top: -30px;
+        }
+        /* Estilo para sillas ocupadas */
+        .chair.occupied {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        /* Estilo para sillas vacías */
+        .chair.empty {
+            background-color: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            color: #94a3b8;
+        }
+        /* Estilo para la silla resaltada del invitado buscado */
+        .chair.highlight {
+            background-color: #4ade80;
+            border-color: #22c55e;
+            color: #14532d;
+            font-weight: bold;
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.3);
+        }
+        /* Efecto hover para sillas */
+        .chair:not(.highlight):hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        /* Indicador de número de asiento */
+        .seat-number {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 4px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        /* Animación para el resultado */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6 md:p-8 text-center">
+        <div class="flex flex-col items-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Buscador de Asientos</h1>
+            <p class="text-gray-600 max-w-md">Ingresa el nombre del invitado para encontrar su mesa y lugar asignado.</p>
+        </div>
+
+        <!-- Formulario de búsqueda -->
+        <form id="searchForm" class="flex flex-col sm:flex-row gap-3 justify-center mb-8">
+            <div class="relative flex-grow">
+                <input type="text" id="guestNameInput" placeholder="Ej: Sofía Gómez" 
+                    class="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-700">
+                <svg class="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <button type="submit" class="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition shadow-md flex items-center justify-center gap-2">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Buscar
+            </button>
+        </form>
+
+        <!-- Contenedor para mostrar el resultado (la mesa) -->
+        <div id="resultContainer" class="fade-in">
+            <!-- La visualización de la mesa se generará aquí -->
+        </div>
+
+        <!-- Contenedor para mensajes de error o informativos -->
+        <div id="messageContainer" class="mt-4 h-6 flex items-center justify-center">
+            <div id="messageContent" class="px-4 py-2 rounded-lg"></div>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="mt-8 flex flex-wrap justify-center gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-blue-500"></div>
+                <span class="text-sm text-gray-600">Invitado buscado</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-gray-200"></div>
+                <span class="text-sm text-gray-600">Asiento ocupado</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded border-2 border-dashed border-gray-300"></div>
+                <span class="text-sm text-gray-600">Asiento disponible</span>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-gray-500 mt-8 text-sm">
+        <p>Sistema de visualización de asignación de mesas</p>
+    </footer>
+
+    <script>
+        // --- BASE DE DATOS DE INVITADOS (Ejemplo) ---
+        const guests = [
+            { name: 'Juan Pérez', table: 1, seat: 1 },
+            { name: 'Maria Garcia', table: 1, seat: 2 },
+            { name: 'Carlos López', table: 1, seat: 3 },
+            { name: 'Ana Martínez', table: 1, seat: 4 },
+            { name: 'Pedro Sánchez', table: 1, seat: 5 },
+            { name: 'Laura Díaz', table: 1, seat: 6 },
+            { name: 'Luis Hernández', table: 2, seat: 1 },
+            { name: 'Sofía Gómez', table: 2, seat: 2 },
+            { name: 'Javier Rodríguez', table: 2, seat: 3 },
+            { name: 'Elena Fernández', table: 2, seat: 4 },
+            { name: 'David Moreno', table: 3, seat: 1 },
+            { name: 'Paula Jiménez', table: 3, seat: 2 },
+            { name: 'Daniel Ruiz', table: 3, seat: 3 },
+            { name: 'Carmen Navarro', table: 3, seat: 4 },
+            { name: 'Sergio Romero', table: 3, seat: 5 },
+            { name: 'Lucía Torres', table: 3, seat: 6 },
+            { name: 'Miguel Ángel Castro', table: 4, seat: 1 },
+            { name: 'Isabel Mendoza', table: 4, seat: 2 },
+            { name: 'Ricardo Vargas', table: 4, seat: 3 },
+            { name: 'Patricia Silva', table: 4, seat: 4 },
+        ];
+
+        // --- CONFIGURACIÓN DE LAS MESAS ---
+        const tablesConfig = {
+            1: { seats: 6, shape: 'circle' },
+            2: { seats: 4, shape: 'circle' },
+            3: { seats: 6, shape: 'circle' },
+            4: { seats: 4, shape: 'circle' },
+            default: { seats: 6, shape: 'circle' }
+        };
+
+        // --- ELEMENTOS DEL DOM ---
+        const searchForm = document.getElementById('searchForm');
+        const guestNameInput = document.getElementById('guestNameInput');
+        const resultContainer = document.getElementById('resultContainer');
+        const messageContainer = document.getElementById('messageContent');
+
+        // --- LÓGICA PRINCIPAL ---
+        searchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const searchName = guestNameInput.value.trim().toLowerCase();
+            
+            // Limpiar resultados y mensajes anteriores
+            resultContainer.innerHTML = '';
+            messageContainer.textContent = '';
+            messageContainer.className = 'px-4 py-2 rounded-lg';
+
+            if (!searchName) {
+                showMessage('Por favor, ingresa un nombre para buscar.', 'error');
+                return;
+            }
+
+            // Buscar al invitado en la base de datos
+            const foundGuest = guests.find(guest => guest.name.toLowerCase().includes(searchName));
+
+            if (foundGuest) {
+                // Si se encuentra, obtener todos los invitados de esa mesa
+                const guestsAtTable = guests.filter(guest => guest.table === foundGuest.table);
+                // Dibujar la mesa
+                drawTable(foundGuest.table, guestsAtTable, foundGuest.name);
+                showMessage(`Invitado encontrado en la Mesa ${foundGuest.table}, Asiento ${foundGuest.seat}`, 'success');
+            } else {
+                // Si no se encuentra, mostrar un mensaje
+                showMessage('Invitado no encontrado. Verifica el nombre e intenta nuevamente.', 'error');
+            }
+        });
+
+        /**
+         * Muestra un mensaje en la interfaz
+         * @param {string} text - Texto del mensaje
+         * @param {string} type - Tipo de mensaje ('success' o 'error')
+         */
+        function showMessage(text, type) {
+            messageContainer.textContent = text;
+            if (type === 'error') {
+                messageContainer.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                messageContainer.classList.add('bg-green-100', 'text-green-700');
+            }
+        }
+
+        /**
+         * Dibuja la mesa y las sillas en el contenedor de resultados.
+         * @param {number} tableNumber - El número de la mesa a dibujar.
+         * @param {Array} guestsAtTable - La lista de invitados en esa mesa.
+         * @param {string} highlightedGuestName - El nombre del invitado a resaltar.
+         */
+        function drawTable(tableNumber, guestsAtTable, highlightedGuestName) {
+            const config = tablesConfig[tableNumber] || tablesConfig.default;
+            const scene = document.createElement('div');
+            scene.className = 'table-scene fade-in';
+
+            // Crear el elemento de la mesa
+            const tableElement = document.createElement('div');
+            tableElement.className = 'table';
+            
+            // Número de mesa dentro de un círculo
+            const tableNumberElement = document.createElement('div');
+            tableNumberElement.className = 'table-number';
+            tableNumberElement.textContent = tableNumber;
+            tableElement.appendChild(tableNumberElement);
+            
+            scene.appendChild(tableElement);
+
+            // Calcular posiciones y crear las sillas
+            const radius = 140; // Radio para posicionar las sillas
+            const angleStep = 360 / config.seats;
+
+            for (let i = 0; i < config.seats; i++) {
+                const seatNumber = i + 1;
+                const chair = document.createElement('div');
+                chair.className = 'chair';
+                
+                // Añadir número de asiento
+                const seatNumberElement = document.createElement('div');
+                seatNumberElement.className = 'seat-number';
+                seatNumberElement.textContent = seatNumber;
+                chair.appendChild(seatNumberElement);
+
+                // Buscar si hay un invitado para este asiento
+                const guestForSeat = guestsAtTable.find(g => g.seat === seatNumber);
+
+                if (guestForSeat) {
+                    chair.classList.add('occupied');
+                    // Mostrar iniciales del nombre
+                    const initials = guestForSeat.name.split(' ').map(n => n[0]).join('');
+                    chair.textContent = initials;
+                    
+                    // Resaltar si es el invitado buscado
+                    if (guestForSeat.name.toLowerCase() === highlightedGuestName.toLowerCase()) {
+                        chair.classList.add('highlight');
+                        // Mostrar nombre completo en tooltip
+                        chair.setAttribute('title', guestForSeat.name);
+                    }
+                } else {
+                    chair.classList.add('empty');
+                    chair.textContent = 'Libre';
+                }
+
+                // Posicionar la silla en un círculo (centrado correctamente)
+                const angle = angleStep * i - 90; // -90 para empezar desde arriba
+                const angleRad = angle * (Math.PI / 180);
+                const x = radius * Math.cos(angleRad);
+                const y = radius * Math.sin(angleRad);
+                
+                chair.style.left = `calc(50% + ${x}px)`;
+                chair.style.top = `calc(50% + ${y}px)`;
+                
+                scene.appendChild(chair);
+            }
+            
+            // Limpiar y añadir la escena con animación
+            resultContainer.innerHTML = '';
+            resultContainer.appendChild(scene);
+            
+            // Añadir título de la mesa
+            const tableTitle = document.createElement('h3');
+            tableTitle.className = 'text-xl font-semibold text-gray-700 mt-2';
+            tableTitle.textContent = `Mesa ${tableNumber}`;
+            resultContainer.insertBefore(tableTitle, scene);
+        }
+
+        // Mostrar una mesa de ejemplo al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            // Mostrar mesa 2 con Sofía Gómez como ejemplo
+            guestNameInput.value = 'Sofía Gómez';
+            const searchEvent = new Event('submit');
+            searchForm.dispatchEvent(searchEvent);
+        });
+    </script>
+</body>
+</html>
